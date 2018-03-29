@@ -1,0 +1,105 @@
+---
+title: "Java x Ruby - Uma comparação baseada em projetos open ource"
+author: "Js Lucas"
+date: "28 de março de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(plotly)
+library(readr)
+```
+
+Projetos de software, podem ser desenvolvidos utilizando um grande número de tecnologias e a escolha destas, costuma despertar as paixões de muitos desenvolvedores. Pensando em linguagens de programação por exemplo, muitos possuem suas preferências pessoais e os debates sobre que linguagens são melhores. O [Github](http://www.github.com) é uma grande fonte de projetos de código aberto, e neste relatório, iremos analisar dados extraídos dele, buscando responder algumas perguntas que comparam duas linguagens em específico: *Ruby* e *Java*.
+
+```{r}
+data <- read_csv('../../data/lab1/projetos.csv')
+```
+
+### Os dados
+
+Antes de mais nada, precisamos entender melhor os dados que serão usados nesta análise. Abaixo, segue uma breve descrição e visão geral de cada variável que será utilizada.
+
+- __gh_project_name__
+- O nome dos projetos, será utilizado apenas para visualização a título de curiosidade.
+
+- __lang__
+- A linguagem majoritária do projeto em questão, vamos observar um pouco a divisão destes dados.
+
+```{r}
+lang_count <- data %>% 
+  select(gh_project_name, lang, team) %>% 
+  group_by(lang) %>% 
+  summarise(count = n())
+
+lang_count %>%
+  plot_ly(x = ~lang, y = ~count, type = "bar")
+```
+
+- Nossos dados, possuem exemplos de projetos em Java, em Ruby e em Javascript, entretanto, nossa análise não inclui javascript, então removeremos estes projetos. Podemos perceber também que há duas vezes mais projetos feitos em Ruby do que Java, para contornar este problema, uma análise deve fazer uso de medidas proporcionais ao tamanho dos subconjuntos de dados, ou até medidas de tendência central como média e mediana.
+
+- __team__
+- A quantidade de membros do time por projeto, esta variável será mais explorada na primeira pergunta que buscamos responder a seguir.
+
+- __build_success_prop__
+- Levando em consideração todas as builds de cada projeto, esta variável captura a proporção destas, que tiveram sucesso. Será explorada na segunda pergunta deste relatório.
+
+### Como são os tamanhos de time nos projetos que usam travis em Java e em Ruby nos nossos dados?
+
+Aqui, buscamos ter uma ideia do tamanho dos times que trabalham em projetos nas duas linguagens.
+
+```{r}
+data <- data %>%
+  filter(lang != "javascript")
+
+data %>%
+  plot_ly(x = ~gh_project_name, y = ~team, type = 'scatter', color = ~lang, colors = "Set1",
+          text = ~paste("Projeto: ", gh_project_name,
+                        "<br>Tamanho do time: ", team)) %>% 
+  layout(xaxis = list(showticklabels = FALSE, title = "Projeto"),
+         yaxis = list(title = "Tamanho do time"))
+
+mediana_java <- median(filter(data, lang == "java")$team)
+mediana_ruby <- median(filter(data, lang == "ruby")$team)
+mediana_dados <- median(data$team)
+iqr_data <- IQR(data$team)
+
+```
+
+De acordo com esta visualização, podemos observar que alguns projetos Ruby apresentam um grande número de membros. Entretanto, não devemos tirar conclusões a partir daí, estes devem ser tratados como casos especiais, de fato, se calcularmos o valor mediano do tamanho dos times para cada linguagem, veremos que o time médio tem o mesmo tamanho para ambas as linguagens.
+
+- Ruby: `r mediana_ruby` pessoas.
+- Java: `r mediana_java` pessoas.
+
+_Utilizamos o valor mediano neste cálculo, pois o mesmo é menos afetado por casos especiais, que é exatamente o que queremos evitar neste caso._
+
+Em outras palavras, apesar de casos especiais acontecerem, a maioria dos projetos, possui tamanho de equipe entre `r mediana_dados - (iqr_data/2)` e `r mediana_dados + (iqr_data/2)`.
+
+### Ao comparar projetos em Java e em Ruby que tenham ao menos 10 contribuidores no time nos nossos dados, projetos de qual linguagem variam mais na proporção de builds cujo resultado é sucesso? 
+
+Talvez observar as taxas de sucesso nos builds dos projetos, nos forneça alguns insights sobre a qualidade das linguagens e seu impacto na qualidade do projeto, removeremos aqui os que tenham menos que 10 contribuidores para eliminar projetos muito pequenos que possam não ser representativos de projetos completos e funcionais.
+
+```{r}
+data %>% 
+  filter(team >= 10) %>% 
+  plot_ly(x = ~gh_project_name, y = ~build_success_prop, type = 'scatter', color = ~lang, colors = "Set1",
+          text = ~paste("Projeto: ", gh_project_name,
+                        "<br>Proporção de sucessos de build: ", build_success_prop)) %>% 
+  layout(xaxis = list(showticklabels = FALSE, title = "Projeto"),
+         yaxis = list(title = "Proporção de sucessos de build"))
+```
+
+Inicialmente, observando todos os dados, a impressão que temos é que temos poucos projetos com proporção baixa de builds e alta concentração de altas proporções independente de linguagem. Para formalizar estas impressões, podemos fazer uso de uma visualização fantástica, o *boxpot*.
+
+```{r}
+data %>% 
+  filter(team >= 10) %>% 
+  plot_ly(y = ~build_success_prop, type = 'box', color = ~lang, colors = "Set1", boxpoints = "all") %>% 
+  layout(xaxis = list(title = "Linguagem"),
+         yaxis = list(title = "Proporção de sucessos de build"))
+```
+
+Agora podemos tirar algumas conclusões interessantes baseados em evidências fortes. O boxplot nos mostra, que a mediana das proporções de sucesso para os projetos feitos em Java é de 0.85, enquanto para Ruby o mesmo valor é de 0.80, Em outras palavras, metade de todos os projetos feitos em Java possuem mais de 85% de sucessos em builds, enquanto para Ruby, metade dos projetos possuem mais de 80%, uma diferença pequena e um bom resultado para ambas as linguagens, entretanto, neste quesito, Java leva a melhor.
+O tamanho da linha de baixo das caixas também nos passa uma informação interessante, Java possui projetos com os menores valores de sucesso de build! entretanto estes são poucos casos e não são representativos da amostra de projetos que está sendo analisada.
