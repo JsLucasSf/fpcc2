@@ -1,0 +1,121 @@
+---
+title: "Mais Variáveis, várias formas"
+author: "Js Lucas"
+date: "16 de abril de 2018"
+output:
+  prettydoc::html_pretty:
+    theme: architect
+    highlight: github
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(plotly)
+library(readr)
+```
+
+## Analisando a relação entre o tamanho do time, a quantidade relativa de testes e a proporção de sucessos em builds para cada linguagem
+
+```{r}
+data <- read_csv('../data/lab1/projetos.csv')
+
+data <- data %>% 
+  filter(lang != "javascript")
+```
+
+Para esta análise, iremos analisar a relação entre as variáveis envolvidas sob várias perspectivas diferentes.
+
+### Tamanho do time x Quantidade relativa de testes
+
+Aqui, colocamos o tamanho do time no eixo x e a quantidade relativa de testes no eixo y.
+Note que o tamanho dos pontos, representa a proporção de builds de sucesso.
+
+```{r}
+data %>% 
+  group_by(team, lang) %>% 
+  summarize(tests_per_kloc = median(tests_per_kloc), build_success_prop = median(build_success_prop)) %>% 
+  plot_ly(x = ~team, y = ~tests_per_kloc, type = "scatter",
+          symbol = ~lang, symbols = c('x', 'circle'), marker = list(size = ~build_success_prop * 20))
+
+data %>% 
+  group_by(team, lang) %>% 
+  summarize(tests_per_kloc = median(tests_per_kloc), build_success_prop = median(build_success_prop)) %>% 
+  ggplot(aes(x = team, y = tests_per_kloc, shape = lang, color = lang, size = build_success_prop)) +
+  geom_point(alpha = 0.5) +
+  scale_x_log10(name = "Tamanho do time") +
+  scale_y_continuous(name = "Taxa proporcional de testes") +
+  scale_shape_discrete(name = "Linguagem") +
+  scale_color_discrete(name = "Linguagem") +
+  scale_size_continuous(name = "Sucessos de build")
+```
+
+Aqui. o uso das diferentes formas aparenta facilitar a visualização das diferenças entre as linguagens, mas a cor também foi utilizada, e segundo a escala de eficácia dos canais, a cor é mais eficaz do que a forma. 
+
+### Tamanho do time x Quantidade relativa de testes
+
+Agora testaremos a visualização utilizando uma marca diferente, uma visualização que combina os pontos com linhas.
+
+```{r}
+data %>% 
+  group_by(team, lang) %>% 
+  summarize(tests_per_kloc = median(tests_per_kloc), build_success_prop = median(build_success_prop)) %>% 
+  plot_ly(x = ~team, y = ~tests_per_kloc, type = "scatter", mode = "line+markers", color = ~lang,
+          marker = list(size = ~build_success_prop * 20))
+```
+
+Aqui o uso da linha facilita a compreensão da diferença nos tamanhos dos times das linguagens, pois a linha referente a linguagem Java é considerávelmente menor.
+
+### Tamanho do time x Quantidade relativa de testes
+
+Nesta visualização, utilizaremos outra marca, as barras. Plotaremos o gráfico agora agrupando o eixo os times em partições menores, desta forma facilitamos a visualização das barras.
+
+```{r}
+d1 <- data %>% 
+  group_by(team, lang) %>% 
+  summarize(tests_per_kloc = median(tests_per_kloc), build_success_prop = median(build_success_prop)) 
+
+d1 %>% 
+  plot_ly(x = ~cut(team, 5), y = ~tests_per_kloc, type = "bar", color = ~lang) %>% 
+  add_trace(type = "scatter", mode = "line", y = ~team,
+            name = "Tamanho do time", color = "red") %>% 
+  layout(xaxis = list(title = "Grupos de tamanhos de times"),
+         yaxis = list(title = "Proporção de testes"))
+```
+
+As barras são ótimas para visualizar variáveis categóricas, entretanto podemos fazer uso de algumas técnicas para tratar variáveis numéricas como categóricas.
+
+### Quantidade relativa de testes x Proporção de builds bem sucedidas
+
+Vamos alterar os eixos na próxima visualização.
+
+```{r}
+p_data <- data %>% 
+  group_by(tests_per_kloc, lang) %>% 
+  summarize(team = median(team), build_success_prop = median(build_success_prop))
+
+p1 <- p_data %>%
+  filter(lang == "ruby") %>% 
+  plot_ly(x = ~tests_per_kloc, y = ~build_success_prop, type = "scatter", mode = "markers",
+          color = ~team, 
+          marker = list(size = ~build_success_prop * 20), name = "Ruby") %>% 
+  layout(xaxis = list(type = "log", title = "Testes por mil linhas de código"),
+         yaxis = list(title = "Proporção de builds bem sucedidas"),
+         legend = list(x = 0.9, y = 0.2))
+
+p2 <- p_data %>% 
+  filter(lang == "java") %>% 
+  plot_ly(x = ~tests_per_kloc, y = ~build_success_prop, type = "scatter", mode = "markers", 
+          color = ~team, 
+          marker = list(size = ~build_success_prop * 20), name = "Java") %>% 
+  layout(xaxis = list(type = "log", title = "Testes por mil linhas de código"),
+         legend = list(x = 0.9, y = 0.2))
+
+subplot(p1, p2, nrows = 2, titleX = TRUE)
+```
+
+Esta visualização faz uso de três canais muito úteis. A cor nos ajuda a compreender que a grande maior parte dos grupos é de poucos membros (roxo escuro).
+
+### Visualização mais eficaz
+
+A última visualização, fez uso da cor, como canal que transmite de maneira eficaz a informação do tamanho do time, de fato, a cor é um canal mais eficaz do que outros canais para variáveis categóricas que experimentamos, como por exemplo a forma dos pontos. Outro canal utilizado foi a área, que para visualização de marcas em 2D, é um dos canais mais eficazes que pode ser utilizado.

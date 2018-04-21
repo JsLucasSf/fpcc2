@@ -1,0 +1,55 @@
+---
+author: "Js Lucas"
+date: "20 de abril de 2018"
+title: "Lab 2, Checkpoint 2 - Uma visualização para publicação"
+fontsize: 11pt
+output: 
+  pdf_document:
+    fig_caption: true
+    pandoc_args: [
+      "-V", "classoption=twocolumn"
+    ]
+
+---
+
+# INTRODUÇÃO
+
+Projetos de software, podem ser desenvolvidos utilizando um grande número de tecnologias e a escolha destas, costuma despertar as paixões de muitos desenvolvedores. Pensando em linguagens de programação por exemplo, muitos possuem suas preferências pessoais e os debates sobre que linguagens são melhores. O [Github](http://www.github.com) é uma grande fonte de projetos de código aberto, e neste relatório, iremos analisar dados extraídos dele, buscando responder algumas perguntas que comparam duas linguagens em específico: *Ruby* e *Java*.
+
+# DESENVOLVIMENTO
+
+## Relacao entre o tamanho do time, a quantidade de testes escritos e o sucesso nas builds
+
+Sera que times maiores escrevem mais testes? podemos assumir tambem, que projetos com um maior numero proporcional de testes possuem mais sucesso nas builds? Iremos analisar estas relacoes agora.
+
+```{r echo=FALSE, warning=FALSE, cache=FALSE, message=FALSE}
+library(dplyr)
+library(plotly)
+library(readr)
+library(here)
+
+data <- read_csv(here('../data/lab1/projetos.csv'))
+
+data <- data %>% 
+  filter(lang != "javascript")
+
+data %>% 
+  group_by(team, lang) %>% 
+  summarize(tests_per_kloc = median(tests_per_kloc), build_success_prop = median(build_success_prop)) %>% 
+  ggplot(aes(x = team, y = tests_per_kloc, shape = lang, color = lang, size = build_success_prop)) +
+  geom_point(alpha = 0.5) +
+  scale_x_log10(name = "Tamanho do time") +
+  scale_y_continuous(name = "Taxa proporcional de testes") +
+  scale_shape_discrete(name = "Linguagem") +
+  scale_color_discrete(name = "Linguagem") +
+  scale_size_continuous(name = "Sucessos de build") +
+  theme(text = element_text(size=14))
+```
+
+A partir desta visualização, podemos observar que não há uma relação que podemos observar facilmente entre o tamanho do time e a taxa de testes do projeto, nem os sucessos de build. Por outro lado, vemos que os projetos Java estão posicionados mais para baixo no gráfico, o que mostra que os mesmos possuem bem menos testes.
+
+# CONCLUSÃO
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus tempor turpis turpis. Quisque a congue risus. Etiam vehicula sodales lacus, sit amet volutpat tortor pulvinar eu. Nunc accumsan egestas tellus eu ultricies. Curabitur nulla mauris, convallis at elit vitae, ultrices rutrum neque. Duis nisl elit, commodo in lectus eget, tristique ultricies nibh. Proin orci enim, eleifend vitae turpis fermentum, vulputate commodo odio. Etiam et malesuada leo, vel ultrices mauris. Etiam sed massa at nisi vestibulum finibus. Suspendisse eget tortor mi. Nam porttitor massa ac tortor bibendum, nec maximus augue rhoncus.
+
+Sed enim neque, scelerisque et ex at, placerat ullamcorper nunc. Suspendisse arcu nunc, accumsan sit amet cursus non, auctor sit amet turpis. Quisque eu dui a libero maximus volutpat aliquet sed sapien. Nunc bibendum finibus lectus, a bibendum mi finibus convallis. Suspendisse in nunc neque. Nam ac imperdiet arcu, faucibus eleifend lacus. Fusce euismod eros ut ipsum congue elementum. Duis nec odio eros. Proin vulputate, ante vel aliquam convallis, nulla sem finibus risus, sed cursus justo sem non turpis. Cras quis elit porttitor, malesuada dui non, sollicitudin nibh. Aenean mauris ligula, finibus in metus mollis, posuere lacinia magna. Vestibulum varius mauris nec cursus tempor. Maecenas varius, dui vitae dignissim malesuada, felis ex consequat erat, id volutpat odio dolor id leo. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vivamus a dolor ante. Sed congue quam vel diam posuere, quis lacinia lectus finibus.
